@@ -1,0 +1,195 @@
+
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+# Naming & reading all the datasets 
+bor_nestlings <- read_csv("data/73_species.csv") 
+
+bor_traits <- read_csv("data/Traits_73_species.csv")  
+
+avonet <- readxl::read_excel("data/AVONET Supplementary dataset 1.xlsx", sheet = "AVONET1_BirdLife") 
+# has a BIG warning message...? 
+
+```
+
+
+
+```{r}
+
+# Are nestlings showing up earlier in the year over time?
+
+
+# nestling data grouped by year, with the mean day of the each year being calculated
+all_birds_trend <- bor_nestlings %>% 
+  group_by(Year) %>% 
+  summarize(mean_doy = mean(Dayofyear))
+
+# Plotting the above mean day for each year with a linear model 
+ggplot(all_birds_trend, aes(Year, mean_doy)) + 
+  geom_point() +
+  geom_smooth(method = "lm")
+
+```
+
+
+Above ⬆️ combines data for all species. Below ⬇️ breaks down by species
+
+```{r}
+# Grouping by both year AND species
+species_trends <- bor_nestlings %>% 
+  group_by(Year, Species) %>% 
+  summarize(mean_doy = mean(Dayofyear),
+            .groups = "drop")
+
+ggplot(species_trends, aes(Year, mean_doy, color = Species)) + 
+  geom_point() +
+  geom_smooth(method = "lm")
+#fark that is messy...? 
+```
+
+Because ⬆️ is chaos, in the next bit ⬇️ we pull out the 5 species with the most data
+
+```{r}
+# Figures out which species has the most data
+data_richness <- bor_nestlings %>% 
+  count(Species)
+
+# From ChatGPT: This line uses the arrange function to reorder the rows of the data frame based on a specific      column. In this case, it is ordering the data frame by the column n in descending order. 
+# desc is short for descending, which means the data will be sorted from highest to lowest.
+most_rich <- data_richness %>% 
+  arrange(desc(n)) %>% 
+  slice(1:5)
+
+most_rich_trends <- bor_nestlings %>% 
+  filter(Species %in% most_rich$Species) %>% #filters by species then by the species with the most data
+  group_by(Species, Year) %>% 
+  summarize(mean_doy = mean(Dayofyear), 
+            .groups = "drop")
+
+ggplot(most_rich_trends, aes(Year, mean_doy, color = Species)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+The above model has a general pattern, with one conflicting example. 
+What species have the strongest trends?
+
+```{r}
+# I'm giving you a *function* to help here. You'll learn more about those next week.
+
+# Finds the slope of the relationship between y and x
+trend <- function(x, y) {
+  xy_lm <- lm(y ~ x)
+  coef(xy_lm)[2]
+}
+
+# Calculate the trend for all species
+bor_trends <- bor_by_year %>% 
+  group_by(Species) %>% 
+  summarize(doy_trend = trend(Year, mean_doy))
+## BOR_BY_YEAR not found....
+```
+
+----------------- ⬆️ YOU LEFT OFF THERE ⬆️--------------------------------------
+
+
+
+Spot check two species:
+```{r}
+soi <- c("ARDCIN", "LARMIN")
+bor_by_year %>% 
+  filter(Species %in% soi) %>% 
+  ggplot(aes(Year, mean_doy, color = Species)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+
+# ------------------------------------------------------------------------------
+                                  YOUR TURN
+# ------------------------------------------------------------------------------
+
+Find the species with the most positive and most negative trends, then plot just those.
+
+```{r}
+nrow_bor_trends <- nrow(bor_trends) # Use this later
+bor_extreme <- bor_trends %>% 
+  # Sort by the day of year trend
+  ___(___) %>% 
+  # Keep just the first (most negative trend) and last (most positive trend) rows
+  slice(c(___, ___))
+
+# Now plot them
+bor_by_year %>% 
+  filter(Species %in% ___) %>% 
+  ggplot(aes(Year, mean_doy, color = Species)) + 
+    geom_point() +
+    geom_smooth(method = "lm")
+```
+
+ ------------------- Bring in more data --------------------
+ 
+Next we’re going to test the hypothesis that smaller birds have more flexible phenology
+(i.e. the absolute value of the trend is correlated with smaller body sizes.)
+
+To test our hypothesis, we need to add AVONET data to our phenology data by joining. 
+The keys are a bit tricky here!
+
+   -- bor_nestlings has a column called Species with a 6-letter code.
+ 
+   -- bor_traits has a column called Abbreviation with the 6-letter code 
+    and a column called `Scientific name` with the binomial name.
+
+   -- avonet has column called Species1 with the binomial name.
+
+Mission: We need to JOIN bor_nestlings to bor_traits, then JOIN with avonet.
+
+```{r}
+# First = select and rename important columns: 
+avonet_size <- select(avonet, SciName = Species1, Mass_g = Mass)
+
+bor_sciname <- select(bor_traits, 
+                      Species = Abbreviation, 
+                      SciName = `Scientific name`)
+```
+
+Now Join:: 
+```{r}
+
+bor_trends_size <- bor_trends %>% 
+  left_join(___, by = ___) %>% 
+  left_join(___, by = ___) %>% 
+  mutate(abs_trend = abs(doy_trend))
+
+# Plot it
+ggplot(bor_trends_size, aes(Mass_g, abs_trend)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+```
+
+That’s  ⬆️ kind of hard to interpret.
+Make a new variable: bor_trends_size2
+  this removes the missing values in Mass_g and keeps only birds smaller than 2000g 
+  with an absolute trend less than 1.
+  
+  
+```{r}
+bor_trends_size2 <- ???
+  
+ggplot(bor_trends_size2, aes(Mass_g, abs_trend)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+Is our hypothesis supported?
+
+------------
+Submission
+Render index.qmd, which produces reports/index.html. Move your HTML file to docs/.
+Enable GitHub pages for your repo.
+Commit your changes and push.
+Open an issue and tag me in it.
