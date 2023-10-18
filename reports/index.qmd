@@ -6,12 +6,13 @@ library(tidyverse)
 
 ```{r}
 # Naming & reading all the datasets 
-bor_nestlings <- read_csv("data/73_species.csv") 
+bor_nestlings <- read_csv(here::here("data/73_species.csv")) 
+# we use the here::here thing when quarto-ing --- because quorto is in reports and data is somewhere else...
 
-bor_traits <- read_csv("data/Traits_73_species.csv")  
+bor_traits <- read_csv(here::here("data/Traits_73_species.csv"))  
 
-avonet <- readxl::read_excel("data/AVONET Supplementary dataset 1.xlsx", sheet = "AVONET1_BirdLife") 
-# has a BIG warning message...? 
+avonet <- readxl::read_excel(here::here("data/AVONET Supplementary dataset 1.xlsx"), sheet = "AVONET1_BirdLife")
+# has a BIG warning message...? Max says this is ok. 
 
 ```
 
@@ -87,20 +88,19 @@ trend <- function(x, y) {
 }
 
 # Calculate the trend for all species
-bor_trends <- bor_by_year %>% 
+bor_trends <- species_trends %>% 
   group_by(Species) %>% 
   summarize(doy_trend = trend(Year, mean_doy))
-## BOR_BY_YEAR not found....
+
 ```
 
 ----------------- ⬆️ YOU LEFT OFF THERE ⬆️--------------------------------------
 
-
-
 Spot check two species:
 ```{r}
-soi <- c("ARDCIN", "LARMIN")
-bor_by_year %>% 
+soi <- c("ARDCIN", "LARMIN") #species of interest
+
+species_trends %>% 
   filter(Species %in% soi) %>% 
   ggplot(aes(Year, mean_doy, color = Species)) +
   geom_point() +
@@ -115,6 +115,7 @@ bor_by_year %>%
 Find the species with the most positive and most negative trends, then plot just those.
 
 ```{r}
+#| eval: false
 nrow_bor_trends <- nrow(bor_trends) # Use this later
 bor_extreme <- bor_trends %>% 
   # Sort by the day of year trend
@@ -148,6 +149,7 @@ The keys are a bit tricky here!
 Mission: We need to JOIN bor_nestlings to bor_traits, then JOIN with avonet.
 
 ```{r}
+#| eval: false
 # First = select and rename important columns: 
 avonet_size <- select(avonet, SciName = Species1, Mass_g = Mass)
 
@@ -158,7 +160,7 @@ bor_sciname <- select(bor_traits,
 
 Now Join:: 
 ```{r}
-
+#| eval: false
 bor_trends_size <- bor_trends %>% 
   left_join(___, by = ___) %>% 
   left_join(___, by = ___) %>% 
@@ -178,6 +180,7 @@ Make a new variable: bor_trends_size2
   
   
 ```{r}
+#| eval: false
 bor_trends_size2 <- ???
   
 ggplot(bor_trends_size2, aes(Mass_g, abs_trend)) +
