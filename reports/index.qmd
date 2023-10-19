@@ -22,7 +22,6 @@ avonet <- readxl::read_excel(here::here("data/AVONET Supplementary dataset 1.xls
 
 # Are nestlings showing up earlier in the year over time?
 
-
 # nestling data grouped by year, with the mean day of the each year being calculated
 all_birds_trend <- bor_nestlings %>% 
   group_by(Year) %>% 
@@ -77,6 +76,7 @@ ggplot(most_rich_trends, aes(Year, mean_doy, color = Species)) +
 
 The above model has a general pattern, with one conflicting example. 
 What species have the strongest trends?
+  ...IDK man...
 
 ```{r}
 # I'm giving you a *function* to help here. You'll learn more about those next week.
@@ -94,11 +94,9 @@ bor_trends <- species_trends %>%
 
 ```
 
------------------ ⬆️ YOU LEFT OFF THERE ⬆️--------------------------------------
-
 Spot check two species:
 ```{r}
-soi <- c("ARDCIN", "LARMIN") #species of interest
+soi <- c("ARDCIN", "LARMIN") # species of interest
 
 species_trends %>% 
   filter(Species %in% soi) %>% 
@@ -115,17 +113,21 @@ species_trends %>%
 Find the species with the most positive and most negative trends, then plot just those.
 
 ```{r}
-#| eval: false
+
 nrow_bor_trends <- nrow(bor_trends) # Use this later
+nrow_bor_trends
+
 bor_extreme <- bor_trends %>% 
   # Sort by the day of year trend
-  ___(___) %>% 
+  arrange(doy_trend) %>% 
   # Keep just the first (most negative trend) and last (most positive trend) rows
-  slice(c(___, ___))
+  slice(c(1,nrow_bor_trends))
 
-# Now plot them
-bor_by_year %>% 
-  filter(Species %in% ___) %>% 
+bor_extreme
+
+# Now plot them. 
+species_trends %>% 
+  filter(Species %in% bor_extreme$Species) %>% 
   ggplot(aes(Year, mean_doy, color = Species)) + 
     geom_point() +
     geom_smooth(method = "lm")
@@ -149,7 +151,7 @@ The keys are a bit tricky here!
 Mission: We need to JOIN bor_nestlings to bor_traits, then JOIN with avonet.
 
 ```{r}
-#| eval: false
+
 # First = select and rename important columns: 
 avonet_size <- select(avonet, SciName = Species1, Mass_g = Mass)
 
@@ -160,10 +162,14 @@ bor_sciname <- select(bor_traits,
 
 Now Join:: 
 ```{r}
-#| eval: false
+# From ChatGPT: What does "left_join do?" --> left_join combines two dataframes based on a common column
+# where the first data frame (the one to the left of the join) is preserved, and additional columns 
+# from the second data frame (the one to the right of the join) are added to it.
+
 bor_trends_size <- bor_trends %>% 
-  left_join(___, by = ___) %>% 
-  left_join(___, by = ___) %>% 
+  left_join(bor_nestlings, by = "Species") %>% 
+  left_join(bor_sciname, by = "Species") %>% 
+  left_join(avonet_size, by = "SciName") %>% 
   mutate(abs_trend = abs(doy_trend))
 
 # Plot it
@@ -171,24 +177,34 @@ ggplot(bor_trends_size, aes(Mass_g, abs_trend)) +
   geom_point() +
   geom_smooth(method = "lm")
 
+# has warnings
+
 ```
 
 That’s  ⬆️ kind of hard to interpret.
+
 Make a new variable: bor_trends_size2
   this removes the missing values in Mass_g and keeps only birds smaller than 2000g 
   with an absolute trend less than 1.
   
   
 ```{r}
-#| eval: false
-bor_trends_size2 <- ???
+
+bor_trends_size2 <- bor_trends_size %>% 
+  na.omit() %>% 
+  filter(Mass_g <2000)
   
 ggplot(bor_trends_size2, aes(Mass_g, abs_trend)) +
   geom_point() +
   geom_smooth(method = "lm")
 ```
 
+Question: 
 Is our hypothesis supported?
+Hypothesis = smaller birds have more flexible phenology
+
+Answer:
+Nooooooo??....the points are all clustered within 0 - 0.5 regardless of mass, so there is not much variation in day of year...????
 
 ------------
 Submission
